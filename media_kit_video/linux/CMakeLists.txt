@@ -20,77 +20,82 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 set(CMAKE_INSTALL_RPATH "$ORIGIN")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-set(LIBMPV_ZIP_URL "https://github.com/Predidit/libmpv-linux-build/releases/download/2024120614/libmpv_x86_64.zip")
-set(LIBMPV_ZIP_PATH "${CMAKE_BINARY_DIR}/libmpv_x86_64.zip")
-set(LIBMPV_ZIP_MD5 "b31f6d3adcdcb7a58793144887584493")
-set(LIBMPV_UNZIP_DIR "${CMAKE_BINARY_DIR}/mpv")
+# 仅在x86架构下捆绑
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+  message(STATUS "Detected x86_64 architecture. Downloading pre-built libmpv.")
 
-make_directory("${LIBMPV_UNZIP_DIR}") 
-message(STATUS "create libmpv unzip directory ${LIBMPV_UNZIP_DIR}")
+  set(LIBMPV_ZIP_URL "https://github.com/Predidit/libmpv-linux-build/releases/download/2024120614/libmpv_x86_64.zip")
+  set(LIBMPV_ZIP_PATH "${CMAKE_BINARY_DIR}/libmpv_x86_64.zip")
+  set(LIBMPV_ZIP_MD5 "b31f6d3adcdcb7a58793144887584493")
+  set(LIBMPV_UNZIP_DIR "${CMAKE_BINARY_DIR}/mpv")
 
-message(STATUS "downloading libmpv from ${LIBMPV_ZIP_URL} to ${LIBMPV_ZIP_PATH}")
-file(DOWNLOAD ${LIBMPV_ZIP_URL} ${LIBMPV_ZIP_PATH} SHOW_PROGRESS STATUS download_status)
+  make_directory("${LIBMPV_UNZIP_DIR}")
+  message(STATUS "create libmpv unzip directory ${LIBMPV_UNZIP_DIR}")
 
-list(GET download_status 0 download_status_code)
-if(NOT download_status_code EQUAL 0)
-  message(FATAL_ERROR "libmpv download failed. err: ${download_status_code}")
-else()
-  message(STATUS "libmpv download completed.")
-endif()
+  message(STATUS "downloading libmpv from ${LIBMPV_ZIP_URL} to ${LIBMPV_ZIP_PATH}")
+  file(DOWNLOAD ${LIBMPV_ZIP_URL} ${LIBMPV_ZIP_PATH} SHOW_PROGRESS STATUS download_status)
 
-message(STATUS "Verifying MD5 checksum for ${LIBMPV_ZIP_PATH}")
-file(MD5 ${LIBMPV_ZIP_PATH} computed_md5)
-if(NOT computed_md5 STREQUAL "${LIBMPV_ZIP_MD5}")
-  message(FATAL_ERROR "MD5 checksum mismatch! Expected: ${LIBMPV_ZIP_MD5}, Got: ${computed_md5}")
-else()
-  message(STATUS "MD5 checksum verification passed.")
-endif()
+  list(GET download_status 0 download_status_code)
+  if(NOT download_status_code EQUAL 0)
+    message(FATAL_ERROR "libmpv download failed. err: ${download_status_code}")
+  else()
+    message(STATUS "libmpv download completed.")
+  endif()
 
-message(STATUS "unzip libmpv to ${LIBMPV_UNZIP_DIR}")
-execute_process(
-  COMMAND unzip -o -q ${LIBMPV_ZIP_PATH} -d ${LIBMPV_UNZIP_DIR}
-  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-  RESULT_VARIABLE unzip_result
-)
+  message(STATUS "Verifying MD5 checksum for ${LIBMPV_ZIP_PATH}")
+  file(MD5 ${LIBMPV_ZIP_PATH} computed_md5)
+  if(NOT computed_md5 STREQUAL "${LIBMPV_ZIP_MD5}")
+    message(FATAL_ERROR "MD5 checksum mismatch! Expected: ${LIBMPV_ZIP_MD5}, Got: ${computed_md5}")
+  else()
+    message(STATUS "MD5 checksum verification passed.")
+  endif()
 
-if(NOT unzip_result EQUAL 0)
-  message(FATAL_ERROR "unzip libmpv failed, err: ${unzip_result}")
-else()
-  message(STATUS "unzip libmpv success.")
-endif()
+  message(STATUS "unzip libmpv to ${LIBMPV_UNZIP_DIR}")
+  execute_process(
+    COMMAND unzip -o -q ${LIBMPV_ZIP_PATH} -d ${LIBMPV_UNZIP_DIR}
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE unzip_result
+  )
 
-set(LIBMPV_PATH "${LIBMPV_UNZIP_DIR}")
+  if(NOT unzip_result EQUAL 0)
+    message(FATAL_ERROR "unzip libmpv failed, err: ${unzip_result}")
+  else()
+    message(STATUS "unzip libmpv success.")
+  endif()
 
-if(EXISTS "${LIBMPV_PATH}/libmpv.so.2")
-  message(STATUS "libmpv.so.2 founded ${LIBMPV_PATH}/libmpv.so.2")
-else()
-  message(FATAL_ERROR "libmpv.so.2 not founded ${LIBMPV_PATH}")
-endif()
+  set(LIBMPV_PATH "${LIBMPV_UNZIP_DIR}")
 
-set(LIBMPV_HEADER_ZIP_URL "https://github.com/Predidit/libmpv-linux-build/releases/download/2024120614/libmpv_x86_64_header.zip")
-set(LIBMPV_HEADER_ZIP_PATH "${CMAKE_BINARY_DIR}/libmpv_x86_64_header.zip")
-set(LIBMPV_HEADER_UNZIP_DIR "${CMAKE_BINARY_DIR}/mpv/include")
+  if(EXISTS "${LIBMPV_PATH}/libmpv.so.2")
+    message(STATUS "libmpv.so.2 founded ${LIBMPV_PATH}/libmpv.so.2")
+  else()
+    message(FATAL_ERROR "libmpv.so.2 not founded ${LIBMPV_PATH}")
+  endif()
 
-message(STATUS "downloading libmpv header from ${LIBMPV_HEADER_ZIP_URL} to ${LIBMPV_HEADER_ZIP_PATH}")
-file(DOWNLOAD ${LIBMPV_HEADER_ZIP_URL} ${LIBMPV_HEADER_ZIP_PATH} SHOW_PROGRESS STATUS download_status)
+  set(LIBMPV_HEADER_ZIP_URL "https://github.com/Predidit/libmpv-linux-build/releases/download/2024120614/libmpv_x86_64_header.zip")
+  set(LIBMPV_HEADER_ZIP_PATH "${CMAKE_BINARY_DIR}/libmpv_x86_64_header.zip")
+  set(LIBMPV_HEADER_UNZIP_DIR "${CMAKE_BINARY_DIR}/mpv/include")
 
-list(GET download_status 0 download_status_code)
-if(NOT download_status_code EQUAL 0)
-  message(FATAL_ERROR "libmpv header download failed. err: ${download_status_code}")
-else()
-  message(STATUS "libmpv header download completed.")
-endif()
+  message(STATUS "downloading libmpv header from ${LIBMPV_HEADER_ZIP_URL} to ${LIBMPV_HEADER_ZIP_PATH}")
+  file(DOWNLOAD ${LIBMPV_HEADER_ZIP_URL} ${LIBMPV_HEADER_ZIP_PATH} SHOW_PROGRESS STATUS download_status)
 
-message(STATUS "unzip libmpv header to ${LIBMPV_HEADER_UNZIP_DIR}")
-execute_process(
-  COMMAND unzip -o -q ${LIBMPV_HEADER_ZIP_PATH} -d ${LIBMPV_HEADER_UNZIP_DIR}
-  RESULT_VARIABLE unzip_result
-)
+  list(GET download_status 0 download_status_code)
+  if(NOT download_status_code EQUAL 0)
+    message(FATAL_ERROR "libmpv header download failed. err: ${download_status_code}")
+  else()
+    message(STATUS "libmpv header download completed.")
+  endif()
 
-if(NOT unzip_result EQUAL 0)
-  message(FATAL_ERROR "unzip libmpv header failed, err: ${unzip_result}")
-else()
-  message(STATUS "unzip libmpv header success.")
+  message(STATUS "unzip libmpv header to ${LIBMPV_HEADER_UNZIP_DIR}")
+  execute_process(
+    COMMAND unzip -o -q ${LIBMPV_HEADER_ZIP_PATH} -d ${LIBMPV_HEADER_UNZIP_DIR}
+    RESULT_VARIABLE unzip_result
+  )
+
+  if(NOT unzip_result EQUAL 0)
+    message(FATAL_ERROR "unzip libmpv header failed, err: ${unzip_result}")
+  else()
+    message(STATUS "unzip libmpv header success.")
+  endif()
 endif()
 
 if(MEDIA_KIT_LIBS_AVAILABLE)
@@ -106,14 +111,10 @@ if(MEDIA_KIT_LIBS_AVAILABLE)
 
   # add runpath, shared libs of a release bundle is in lib dir, plugin must add $ORIGIN to runpath to find libmpv
   target_link_options(${PLUGIN_NAME} PRIVATE -Wl,--enable-new-dtags -Wl,-z,origin)
-  set_target_properties(${PLUGIN_NAME} PROPERTIES 
+  set_target_properties(${PLUGIN_NAME} PROPERTIES
   BUILD_WITH_INSTALL_RPATH TRUE
   INSTALL_RPATH "$ORIGIN:$ORIGIN/lib"
   INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-  add_library(
-     libmpv SHARED IMPORTED
-  )
 
   apply_standard_settings(${PLUGIN_NAME})
 
@@ -123,11 +124,6 @@ if(MEDIA_KIT_LIBS_AVAILABLE)
   set_target_properties(
     ${PLUGIN_NAME} PROPERTIES
     CXX_VISIBILITY_PRESET hidden
-  )
-
-  set_target_properties(
-    libmpv PROPERTIES
-    IMPORTED_LOCATION "${LIBMPV_UNZIP_DIR}/libmpv.so.2"
   )
 
   target_compile_definitions(
@@ -143,19 +139,44 @@ if(MEDIA_KIT_LIBS_AVAILABLE)
     "${epoxy_INCLUDE_DIRS}"
   )
 
-  target_include_directories(
-    ${PLUGIN_NAME} PRIVATE
-    "${LIBMPV_HEADER_UNZIP_DIR}"
-  )
-
-  target_link_libraries(
-    ${PLUGIN_NAME} PRIVATE
-    flutter
-    PkgConfig::GTK
-    libmpv
-    PkgConfig::epoxy
-  )
-
+  if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    add_library(libmpv SHARED IMPORTED)
+    set_target_properties(
+      libmpv PROPERTIES
+      IMPORTED_LOCATION "${LIBMPV_UNZIP_DIR}/libmpv.so.2"
+    )
+    target_include_directories(
+      ${PLUGIN_NAME} PRIVATE
+      "${LIBMPV_HEADER_UNZIP_DIR}"
+    )
+    target_link_libraries(
+      ${PLUGIN_NAME} PRIVATE
+      flutter
+      PkgConfig::GTK
+      libmpv
+      PkgConfig::epoxy
+    )
+    set(
+      media_kit_video_bundled_libraries
+      "${LIBMPV_PATH}/libmpv.so.2"
+      PARENT_SCOPE
+    )
+  else()
+    message(STATUS "Detected ${CMAKE_SYSTEM_PROCESSOR} architecture. Using system libmpv.")
+    pkg_check_modules(mpv REQUIRED IMPORTED_TARGET mpv)
+    target_compile_options(${PLUGIN_NAME} PRIVATE "${mpv_CFLAGS_OTHER}")
+    target_include_directories(
+      ${PLUGIN_NAME} INTERFACE
+      "${mpv_INCLUDE_DIRS}"
+    )
+    target_link_libraries(
+      ${PLUGIN_NAME} PRIVATE
+      flutter
+      PkgConfig::GTK
+      PkgConfig::mpv
+      PkgConfig::epoxy
+    )
+  endif()
 else()
   message(NOTICE "media_kit: WARNING: package:media_kit_libs_*** not found.")
 
@@ -166,7 +187,7 @@ else()
 
   # add runpath, shared libs of a release bundle is in lib dir, plugin must add $ORIGIN to runpath to find libmpv
   target_link_options(${PLUGIN_NAME} PRIVATE -Wl,--enable-new-dtags -Wl,-z,origin)
-  set_target_properties(${PLUGIN_NAME} PROPERTIES 
+  set_target_properties(${PLUGIN_NAME} PROPERTIES
   BUILD_WITH_INSTALL_RPATH TRUE
   INSTALL_RPATH "$ORIGIN:$ORIGIN/lib"
   INSTALL_RPATH_USE_LINK_PATH TRUE)
@@ -195,14 +216,3 @@ else()
     PkgConfig::GTK
   )
 endif()
-
-message(STATUS "create libmpv install directory ${CMAKE_BINARY_DIR}/mpv")
-file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/mpv")
-
-# install(FILES "${LIBMPV_PATH}/libmpv.so.2" DESTINATION lib)
-
-set(
-  media_kit_video_bundled_libraries
-  "${LIBMPV_PATH}/libmpv.so.2"
-  PARENT_SCOPE
-)
