@@ -56,22 +56,22 @@ task downloadDependencies(type: Exec) {
         }
         outputDir.mkdirs()
 
-        // Download all *.jar dependencies & verify their MD5 checksums.
+        // Download all *.jar dependencies & verify their SHA-256 checksums.
         def filesToDownload = [
-            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.1.4/default-arm64-v8a.jar", "md5": "512070675a9ff19a9fd964dd433e5ab5", "destination": file("$buildDir/v1.1.4/default-arm64-v8a.jar")],
-            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.1.4/default-armeabi-v7a.jar", "md5": "9eee5d06c5517807eee050c1fc40917b", "destination": file("$buildDir/v1.1.4/default-armeabi-v7a.jar")],
-            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.1.4/default-x86_64.jar", "md5": "f1ac2561b0c0a9867ad8c55f60321432", "destination": file("$buildDir/v1.1.4/default-x86_64.jar")],
-            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.1.4/default-x86.jar", "md5": "8c9f8e4e7647508a28986451b205ab68", "destination": file("$buildDir/v1.1.4/default-x86.jar")]
+            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.2.1/default-arm64-v8a.jar", "sha256": "ed516ca1bb6b59c1f78533588f7a1f817c5695052238068bfbc9cd23701b52e8", "destination": file("$buildDir/v1.2.1/default-arm64-v8a.jar")],
+            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.2.1/default-armeabi-v7a.jar", "sha256": "f4492582e3c9d7ca790f2b1ff707da77833e4f1e4f84adea8791a6f736a001a8", "destination": file("$buildDir/v1.2.1/default-armeabi-v7a.jar")],
+            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.2.1/default-x86_64.jar", "sha256": "f60c9386409c8b1016522e5b93218505e5f4f4d86c99ee65929f0907c81e9200", "destination": file("$buildDir/v1.2.1/default-x86_64.jar")],
+            ["url": "https://github.com/Predidit/libmpv-android-video-build/releases/download/v1.2.1/default-x86.jar", "sha256": "6784fb30ee9b996c9c4b43d14b2a664a53f734f91967bd332235687503b6f326", "destination": file("$buildDir/v1.2.1/default-x86.jar")]
         ]
 
         filesToDownload.each { fileInfo ->
             def destFile = fileInfo.destination
             if (destFile.exists()) {
-                def calculatedMD5 = MessageDigest.getInstance("MD5").digest(Files.readAllBytes(destFile.toPath())).encodeHex().toString()
+                def calculatedSHA256 = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(destFile.toPath())).encodeHex().toString()
 
-                if (calculatedMD5 != fileInfo.md5) {
+                if (calculatedSHA256 != fileInfo.sha256) {
                     destFile.delete()
-                    println "MD5 mismatch. File deleted: ${destFile}"
+                    println "SHA-256 mismatch. File deleted: ${destFile}"
                 }
 
             }
@@ -83,9 +83,9 @@ task downloadDependencies(type: Exec) {
                     os << new URL(fileInfo.url).openStream()
                 }
 
-                def calculatedMD5 = MessageDigest.getInstance("MD5").digest(Files.readAllBytes(destFile.toPath())).encodeHex().toString()
-                if (calculatedMD5 != fileInfo.md5) {
-                    throw new GradleException("MD5 verification failed for ${destFile}")
+                def calculatedSHA256 = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(destFile.toPath())).encodeHex().toString()
+                if (calculatedSHA256 != fileInfo.sha256) {
+                    throw new GradleException("SHA-256 verification failed for ${destFile}")
                 }
             }
 

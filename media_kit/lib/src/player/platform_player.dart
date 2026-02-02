@@ -506,6 +506,12 @@ class PlayerConfiguration {
   /// Learn more: https://ffmpeg.org/ffmpeg-protocols.html#Protocol-Options
   final List<String> protocolWhitelist;
 
+  /// Enables HLS ad filtering via `hls_ad_filter`.
+  ///
+  /// Default: `false` (pass `hls_ad_filter=0`).
+  /// When set to `true`, `hls_ad_filter=1` is passed to disable ads.
+  final bool adBlocker;
+
   /// {@macro player_configuration}
   const PlayerConfiguration({
     this.vo = 'null',
@@ -528,9 +534,11 @@ class PlayerConfiguration {
       'data',
       'file',
       'http',
+      'httpproxy',
       'https',
       'crypto',
     ],
+    this.adBlocker = false,
   });
 }
 
