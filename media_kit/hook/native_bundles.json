@@ -36,9 +36,9 @@
       "library": "libmpv-2.dll"
     },
     "windows_x64": {
-      "url": "https://github.com/Predidit/libmpv-win32-video-cmake/releases/download/202609151348/mpv-dev-x86_64-20260915-git-0b7ed67.7z",
-      "sha256": "8adceab30b6bcc5503fa9d3823b68f4acd15ee1c41d6dc2492826f373531c10a",
-      "format": "7z",
+      "url": "https://github.com/SlotSun/media-kit/releases/download/mpv_release/mpv-dev-x86_64-20260915-git-0b7ed67.zip",
+      "sha256": "0b6c216a7a83fe69feadf993e4795e120d8f1e0acfc790ad10fd3ee60c7ca47d",
+      "format": "zip",
       "library": "libmpv-2.dll"
     },
     "linux_x64": {
