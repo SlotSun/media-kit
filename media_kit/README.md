@@ -32,29 +32,29 @@
 
 ## Installation
 
-[package:media_kit](https://github.com/media-kit/media-kit) is split into multiple packages to improve modularity & reduce bundle size.
+Requires Dart 3.10 / Flutter 3.38 or newer. The core package builds its lifecycle bridge and bundles native playback libraries through Dart build hooks. Add `media_kit_video` for Flutter textures. See [native build configuration](doc/native_assets.md).
 
 #### For apps that need video playback:
 
 ```yaml
 dependencies:
-  media_kit: ^1.1.11 # Primary package.
-  media_kit_video: ^1.2.5 # For video rendering.
-  media_kit_libs_video: ^1.0.5 # Native video dependencies.
+  media_kit:
+    path: ../media-kit/media_kit
+  media_kit_video:
+    path: ../media-kit/media_kit_video
 ```
 
 #### For apps that need audio playback:
 
 ```yaml
 dependencies:
-  media_kit: ^1.1.11 # Primary package.
-  media_kit_libs_audio: ^1.0.5 # Native audio dependencies.
+  media_kit:
+    path: ../media-kit/media_kit
 ```
 
 **Notes:**
 
-- The video libraries should be selected if both video & audio support is needed.
-- The `media_kit_libs_video` & `media_kit_libs_audio` packages should not be mixed.
+- Audio and video use the same default native bundle; custom builds can be selected through hook configuration.
 - The performance in ["Release" mode](https://docs.flutter.dev/testing/build-modes#release) is substantially higher than in ["Debug" mode](https://docs.flutter.dev/testing/build-modes#debug).
 - [Enable --split-per-abi](https://docs.flutter.dev/deployment/android#what-is-a-fat-apk) or [use app bundle (instead of APK)](https://docs.flutter.dev/deployment/android#when-should-i-build-app-bundles-versus-apks) on Android.
 
@@ -63,9 +63,9 @@ dependencies:
 | Platform  | Video | Audio | Notes                              | Demo                                                                                                                        |
 | --------- | ----- | ----- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Android   | ✅    | ✅    | Android 5.0 or above.              | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_android-arm64-v8a.apk) |
-| iOS       | ✅    | ✅    | iOS 9 or above.                    | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_ios_arm64.7z)          |
-| macOS     | ✅    | ✅    | macOS 10.9 or above.               | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_macos_universal.7z)    |
-| Windows   | ✅    | ✅    | Windows 7 or above.                | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_win32_x64.7z)          |
+| iOS       | ✅    | ✅    | iOS 13 or above.                    | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_ios_arm64.7z)          |
+| macOS     | ✅    | ✅    | macOS 10.15 or above.               | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_macos_universal.7z)    |
+| Windows   | ✅    | ✅    | Windows 10 or above.                | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_win32_x64.7z)          |
 | GNU/Linux | ✅    | ✅    | Any modern GNU/Linux distribution. | [Download](https://github.com/media-kit/media-kit/releases/download/media_kit-v1.1.10/media_kit_test_linux_x64.7z)          |
 | Web       | ✅    | ✅    | Any modern web browser.            | [Visit](https://media-kit.github.io/media-kit/)                                                                             |
 
@@ -143,7 +143,6 @@ A quick usage example.
 // Make sure to add following packages to pubspec.yaml:
 // * media_kit
 // * media_kit_video
-// * media_kit_libs_video
 import 'package:flutter/material.dart';
 
 import 'package:media_kit/media_kit.dart';                      // Provides [Player], [Media], [Playlist] etc.
@@ -466,6 +465,7 @@ The following state(s) are available as events:
 | `Stream<AudioParams>`       | `audioParams`  | Audio parameters of the currently playing media source e.g. sample rate, channels, etc.                  |
 | `Stream<VideoParams>`       | `videoParams`  | Video parameters of the currently playing media source e.g. width, height, rotation etc.                 |
 | `Stream<double?>`           | `audioBitrate` | Audio bitrate of the currently playing media source.                                                     |
+| `Stream<double?>`           | `videoBitrate` | Video bitrate of the currently playing media source.                                                     |
 | `Stream<AudioDevice>`       | `audioDevice`  | Currently selected audio device.                                                                         |
 | `Stream<List<AudioDevice>>` | `audioDevices` | Currently available audio devices.                                                                       |
 | `Stream<Track>`             | `track`        | Currently selected video, audio and subtitle track.                                                      |
@@ -727,6 +727,7 @@ final VideoController player = VideoController(
   configuration: const VideoControllerConfiguration(
     // Supply your options:
     enableHardwareAcceleration: true,      // default: true
+    enableAndroidSurfaceProducer: true,    // Android only, default: true
     width: 640,                            // default: null
     height: 480,                           // default: null
     // The in-code comments is best place to know more about these options:

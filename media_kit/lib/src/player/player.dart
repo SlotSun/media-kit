@@ -113,6 +113,8 @@ class Player {
       platform = NativePlayer(configuration: configuration);
     } else if (UniversalPlatform.isAndroid) {
       platform = NativePlayer(configuration: configuration);
+    } else if (UniversalPlatform.operatingSystem == 'ohos') {
+      platform = NativePlayer(configuration: configuration);
     } else if (UniversalPlatform.isWeb) {
       platform = WebPlayer(configuration: configuration);
     }
@@ -319,6 +321,26 @@ class Player {
       {String? format = 'image/jpeg',
       bool includeLibassSubtitles = false}) async {
     return platform?.screenshot(
+      format: format,
+      includeLibassSubtitles: includeLibassSubtitles,
+    );
+  }
+
+  /// Takes the snapshot of the current video frame & returns image bytes that
+  /// are safe to retain or transfer to another isolate.
+  ///
+  /// This is useful for `format == null`, where the native backend returns raw
+  /// BGRA pixels. [screenshot] keeps the low-copy raw path for performance, but
+  /// those bytes may be backed by native memory whose lifetime ends after the
+  /// call. [safeScreenshot] copies raw pixels into Dart-owned memory before
+  /// returning them.
+  ///
+  /// Encoded formats (`image/jpeg` & `image/png`) are already safe; for them,
+  /// this method behaves the same as [screenshot].
+  Future<Uint8List?> safeScreenshot(
+      {String? format = 'image/jpeg',
+      bool includeLibassSubtitles = false}) async {
+    return platform?.safeScreenshot(
       format: format,
       includeLibassSubtitles: includeLibassSubtitles,
     );

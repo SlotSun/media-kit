@@ -510,6 +510,9 @@ class WebPlayer extends PlatformPlayer {
       if (!audioBitrateController.isClosed) {
         audioBitrateController.add(null);
       }
+      if (!videoBitrateController.isClosed) {
+        videoBitrateController.add(null);
+      }
       // if (!audioDeviceController.isClosed) {
       //   audioDeviceController.add(AudioDevice.auto());
       // }
@@ -1410,6 +1413,18 @@ class WebPlayer extends PlatformPlayer {
     } else {
       return function();
     }
+  }
+
+  @override
+  Future<Uint8List?> safeScreenshot(
+      {String? format = 'image/jpeg',
+      bool synchronized = true,
+      bool includeLibassSubtitles = false}) {
+    return screenshot(
+      format: format,
+      synchronized: synchronized,
+      includeLibassSubtitles: includeLibassSubtitles,
+    );
   }
 
   void _loadSource(Media media) {

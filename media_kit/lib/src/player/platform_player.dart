@@ -86,6 +86,9 @@ abstract class PlatformPlayer {
     audioBitrateController.stream.distinct(
       (previous, current) => previous == current,
     ),
+    videoBitrateController.stream.distinct(
+      (previous, current) => previous == current,
+    ),
     audioDeviceController.stream.distinct(
       (previous, current) => previous == current,
     ),
@@ -133,6 +136,7 @@ abstract class PlatformPlayer {
         audioParamsController.close(),
         videoParamsController.close(),
         audioBitrateController.close(),
+        videoBitrateController.close(),
         audioDeviceController.close(),
         audioDevicesController.close(),
         trackController.close(),
@@ -291,6 +295,14 @@ abstract class PlatformPlayer {
     );
   }
 
+  Future<Uint8List?> safeScreenshot(
+      {String? format = 'image/jpeg',
+      bool includeLibassSubtitles = false}) async {
+    throw UnimplementedError(
+      '[PlatformPlayer.safeScreenshot] is not implemented',
+    );
+  }
+
   Future<int> get handle {
     throw UnimplementedError(
       '[PlatformPlayer.handle] is not implemented',
@@ -361,6 +373,10 @@ abstract class PlatformPlayer {
 
   @protected
   final StreamController<double?> audioBitrateController =
+      StreamController<double?>.broadcast();
+
+  @protected
+  final StreamController<double?> videoBitrateController =
       StreamController<double?>.broadcast();
 
   @protected

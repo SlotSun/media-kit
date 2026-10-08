@@ -1,3 +1,7 @@
+import CoreGraphics
+import CoreVideo
+import Foundation
+
 #if canImport(Flutter)
   import Flutter
 #elseif canImport(FlutterMacOS)
@@ -15,6 +19,12 @@ public class SafeResizableTexture:
 
   init(_ child: ResizableTextureProtocol) {
     self.child = child
+  }
+
+  public func dispose() {
+    locked {
+      child.dispose()
+    }
   }
 
   public func resize(_ size: CGSize) {

@@ -7,6 +7,7 @@
 // LICENSE file.
 
 #include "video_output.h"
+#include "../common/video_dimensions.h"
 
 #include <algorithm>
 
@@ -37,10 +38,14 @@ VideoOutput::VideoOutput(int64_t handle,
     
     if (configuration.enable_hardware_acceleration) {
       try {
-        // Create D3D11 renderer with swap chain.
+        IDXGIAdapter* flutter_adapter = nullptr;
+        if (auto* view = registrar_->GetView()) {
+          flutter_adapter = view->GetGraphicsAdapter();
+        }
         d3d11_renderer_ = std::make_unique<D3D11Renderer>(
             static_cast<int32_t>(width_.value_or(1)),
-            static_cast<int32_t>(height_.value_or(1)));
+            static_cast<int32_t>(height_.value_or(1)),
+            flutter_adapter);
         
         // Initialize mpv with the D3D11 device and swap chain
         mpv_dxgi_init_params init_params = {
@@ -118,6 +123,10 @@ VideoOutput::VideoOutput(int64_t handle,
 
 VideoOutput::~VideoOutput() {
   destroyed_ = true;
+  if (render_context_) {
+    // Stop the producer before draining queued tasks that borrow this object.
+    mpv_render_context_set_update_callback(render_context_, nullptr, nullptr);
+  }
   auto promise = std::promise<void>();
   if (texture_id_) {
     registrar_->texture_registrar()->UnregisterTexture(
@@ -138,14 +147,13 @@ VideoOutput::~VideoOutput() {
             promise.set_value();
           });
         });
+    promise.get_future().wait();
   }
-
-  promise.get_future().wait();
   texture_id_ = 0;
 
   thread_pool_ref_->Post([render_context = render_context_]() {
-    mpv_render_context_free(render_context);
-  });
+    if (render_context) mpv_render_context_free(render_context);
+  }).wait();
 }
 
 void VideoOutput::NotifyRender() {
@@ -162,7 +170,7 @@ void VideoOutput::Render() {
     if (d3d11_renderer_ != nullptr) {
       mpv_render_context_render(render_context_, nullptr);
       mpv_render_context_report_swap(render_context_);
-      d3d11_renderer_->CopyTexture();
+      d3d11_renderer_->ProducerCommit();
     }
     // S/W
     if (pixel_buffer_ != nullptr) {
@@ -293,22 +301,29 @@ void VideoOutput::Resize(int64_t required_width, int64_t required_height) {
     
     auto texture = std::make_unique<FlutterDesktopGpuSurfaceDescriptor>();
     texture->struct_size = sizeof(FlutterDesktopGpuSurfaceDescriptor);
-    texture->handle = d3d11_renderer_->handle();
+    // Seed with the latest-completed-slot handle so Flutter has a valid
+    // surface even before the first mpv frame is committed.
+    texture->handle = d3d11_renderer_->ReadHandleSnapshot();
     texture->width = texture->visible_width = d3d11_renderer_->width();
     texture->height = texture->visible_height = d3d11_renderer_->height();
     texture->release_context = nullptr;
     texture->release_callback = [](void*) {};
     texture->format = kFlutterDesktopPixelFormatBGRA8888;
-    
+
     auto texture_variant =
         std::make_unique<flutter::TextureVariant>(flutter::GpuSurfaceTexture(
             kFlutterDesktopGpuSurfaceTypeDxgiSharedHandle, [&](auto, auto) {
               std::lock_guard<std::mutex> lock(textures_mutex_);
               if (texture_id_) {
-                return textures_.at(texture_id_).get();
-              } else {
-                return (FlutterDesktopGpuSurfaceDescriptor*)nullptr;
+                auto* desc = textures_.at(texture_id_).get();
+                // ConsumerAcquire() is lock-free.  texture_id_ != 0 implies
+                // d3d11_renderer_ is valid: UnregisterTexture guarantees that
+                // Flutter stops invoking this callback before the destructor
+                // resets d3d11_renderer_.
+                desc->handle = d3d11_renderer_->ConsumerAcquire();
+                return desc;
               }
+              return (FlutterDesktopGpuSurfaceDescriptor*)nullptr;
             }));
     // Register new texture.
     texture_id_ =
@@ -360,34 +375,7 @@ int64_t VideoOutput::GetVideoWidth() {
     return width_.value();
   }
   // Video resolution dependent width.
-  int64_t width = 0;
-  int64_t height = 0;
-
-  mpv_node params;
-  mpv_get_property(handle_, "video-out-params", MPV_FORMAT_NODE, &params);
-
-  int64_t dw = 0, dh = 0, rotate = 0;
-  if (params.format == MPV_FORMAT_NODE_MAP) {
-    for (int32_t i = 0; i < params.u.list->num; i++) {
-      char* key = params.u.list->keys[i];
-      auto value = params.u.list->values[i];
-      if (value.format == MPV_FORMAT_INT64) {
-        if (strcmp(key, "dw") == 0) {
-          dw = value.u.int64;
-        }
-        if (strcmp(key, "dh") == 0) {
-          dh = value.u.int64;
-        }
-        if (strcmp(key, "rotate") == 0) {
-          rotate = value.u.int64;
-        }
-      }
-    }
-    mpv_free_node_contents(&params);
-  }
-
-  width = rotate == 0 || rotate == 180 ? dw : dh;
-  height = rotate == 0 || rotate == 180 ? dh : dw;
+  const auto [width, height] = media_kit::GetVideoDimensions(handle_);
 
   if (pixel_buffer_ != nullptr) {
     // Make sure |width| & |height| fit between |SW_RENDERING_MAX_WIDTH| &
@@ -409,34 +397,7 @@ int64_t VideoOutput::GetVideoHeight() {
     return height_.value();
   }
   // Video resolution dependent height.
-  int64_t width = 0;
-  int64_t height = 0;
-
-  mpv_node params;
-  mpv_get_property(handle_, "video-out-params", MPV_FORMAT_NODE, &params);
-
-  int64_t dw = 0, dh = 0, rotate = 0;
-  if (params.format == MPV_FORMAT_NODE_MAP) {
-    for (int32_t i = 0; i < params.u.list->num; i++) {
-      char* key = params.u.list->keys[i];
-      auto value = params.u.list->values[i];
-      if (value.format == MPV_FORMAT_INT64) {
-        if (strcmp(key, "dw") == 0) {
-          dw = value.u.int64;
-        }
-        if (strcmp(key, "dh") == 0) {
-          dh = value.u.int64;
-        }
-        if (strcmp(key, "rotate") == 0) {
-          rotate = value.u.int64;
-        }
-      }
-    }
-    mpv_free_node_contents(&params);
-  }
-
-  width = rotate == 0 || rotate == 180 ? dw : dh;
-  height = rotate == 0 || rotate == 180 ? dh : dw;
+  const auto [width, height] = media_kit::GetVideoDimensions(handle_);
 
   if (pixel_buffer_ != NULL) {
     // Make sure |width| & |height| fit between |SW_RENDERING_MAX_WIDTH| &

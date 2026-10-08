@@ -1,3 +1,5 @@
+import Foundation
+
 // https://stackoverflow.com/questions/49043257/how-to-ensure-to-run-some-code-on-same-background-thread/49075382#49075382
 class Worker {
   public typealias Job = () -> Void
@@ -19,22 +21,19 @@ class Worker {
   }
 
   public func enqueue(_ job: @escaping Job) {
-    locked {
+    let accepted = locked {
+      if canceled { return false }
       queue.append(job)
+      return true
     }
-
-    semaphore.signal()
+    if accepted { semaphore.signal() }
   }
 
   private func loop() {
     while true {
       semaphore.wait()
 
-      if isCanceled() {
-        return
-      }
-
-      let job = getFirstJob()
+      guard let job = getFirstJob() else { return }
       job()
     }
   }
@@ -42,22 +41,16 @@ class Worker {
   private func signalCancel() {
     locked {
       canceled = true
+      queue.removeAll()
     }
 
     semaphore.signal()
   }
 
-  private func isCanceled() -> Bool {
-    let c = locked {
-      canceled
-    }
-
-    return c
-  }
-
-  private func getFirstJob() -> Job {
+  private func getFirstJob() -> Job? {
     let job = locked {
-      queue.removeFirst()
+      if canceled || queue.isEmpty { return nil as Job? }
+      return queue.removeFirst()
     }
 
     return job

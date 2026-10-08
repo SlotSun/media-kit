@@ -102,6 +102,29 @@ void main() {
     },
   );
   test(
+    'player-configuration-osc-disabled-does-not-log-property-not-found',
+    () async {
+      final player = Player(
+        configuration: const PlayerConfiguration(osc: false),
+      );
+      var hasOscPropertyError = false;
+      final subscription = player.stream.log.listen((event) {
+        if (event.text.contains('_setProperty(osc')) {
+          hasOscPropertyError = true;
+        }
+      });
+
+      await player.platform?.waitForPlayerInitialization;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(hasOscPropertyError, isFalse);
+
+      await subscription.cancel();
+      await player.dispose();
+    },
+    skip: UniversalPlatform.isWeb,
+  );
+  test(
     'player-open-playable-media',
     () async {
       final player = Player();
@@ -2792,6 +2815,7 @@ void main() {
       expect(player.state.audioParams, equals(const AudioParams()));
       expect(player.state.videoParams, equals(const VideoParams()));
       expect(player.state.audioBitrate, equals(null));
+      expect(player.state.videoBitrate, equals(null));
       expect(player.state.track, equals(const Track()));
       expect(player.state.tracks, equals(const Tracks()));
       expect(player.state.width, equals(null));
@@ -3033,102 +3057,19 @@ void main() {
         ),
       );
 
+      // mpv may coalesce a brief empty sub-text update with the next cue.
+      // Check every displayed cue in order without depending on those gaps.
       expect(
-        player.stream.subtitle,
+        player.stream.subtitle.where(
+          (subtitle) => subtitle.any((line) => line.isNotEmpty),
+        ),
         emitsInOrder(
           [
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['', ''],
-              ),
-              '',
-              isTrue,
-            ),
-            // SAME VALUE!
-            // TypeMatcher<List<String>>().having(
-            //   (subtitle) => ListEquality().equals(
-            //     subtitle,
-            //     ['', ''],
-            //   ),
-            //   'subtitle',
-            //   isTrue,
-            // ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['...the colossus of Rhodes!', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['No!', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                [
-                  'The colossus of Rhodes\nand it is here just for you Proog.',
-                  ''
-                ],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['It is there...', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
-            TypeMatcher<List<String>>().having(
-              (subtitle) => ListEquality().equals(
-                subtitle,
-                ['I\'m telling you,\nEmo...', ''],
-              ),
-              'subtitle',
-              isTrue,
-            ),
+            ['...the colossus of Rhodes!', ''],
+            ['No!', ''],
+            ['The colossus of Rhodes\nand it is here just for you Proog.', ''],
+            ['It is there...', ''],
+            ["I'm telling you,\nEmo...", ''],
             emitsDone,
           ],
         ),
