@@ -36,8 +36,8 @@
       "library": "libmpv-2.dll"
     },
     "windows_x64": {
-      "url": "https://github.com/SlotSun/media-kit/releases/download/mpv_release/mpv-dev-x86_64-20260915-git-0b7ed67.zip",
-      "sha256": "0b6c216a7a83fe69feadf993e4795e120d8f1e0acfc790ad10fd3ee60c7ca47d",
+      "url": "https://github.com/SlotSun/media-kit/releases/download/mpv_release/mpv-dev-x86_64-20261112-git-bcde6b9.zip",
+      "sha256": "e76ef2cb1dd1280e7ead741cd2912d66bcaeee2299e27d3079719110ab0b770c",
       "format": "zip",
       "library": "libmpv-2.dll"
     },
